@@ -85,18 +85,25 @@ class AssetRegistryLoader:
                 return
 
             # Matching is contract-based: the registry serves the canonical
-            # `asset_contract_address` for every token (SAC for classic assets,
+            # `asset_contract_address` per whitelisted token (SAC for classic assets,
             # the token contract for soroban ones), and every local Asset row
             # carries `contract_id`. `asset_code`/`asset_issuer` are nullable
             # for soroban tokens and are not used here.
+            # Only whitelisted records feed the desired set, so only they need a
+            # valid address; the address of any other record is not looked at.
             for record in data["results"]:
                 if (
                     not isinstance(record, dict)
-                    or "asset_contract_address" not in record
                     or "whitelisted" not in record
-                    or not isinstance(record["asset_contract_address"], str)
-                    or not StrKey.is_valid_contract(record["asset_contract_address"])
                     or not isinstance(record["whitelisted"], bool)
+                    or (
+                        record["whitelisted"]
+                        and (
+                            "asset_contract_address" not in record
+                            or not isinstance(record["asset_contract_address"], str)
+                            or not StrKey.is_valid_contract(record["asset_contract_address"])
+                        )
+                    )
                 ):
                     logger.warning(
                         "Asset registry record has unexpected shape: %s", record
